@@ -16,7 +16,7 @@ def send_at(cmd, delay=3):
     print(f"{cmd} -> {resp.strip()}")
     return resp
 
-def read_response(timeout=10):
+def read_response(timeout=60):
     end_time = time.time() + timeout
     resp = b""
     while time.time() < end_time:
@@ -31,7 +31,7 @@ def send_sms(recipient, message):
     # Step 1: send the command
     ser.write(f'AT+CMGS="{recipient}"\r\n'.encode())
     time.sleep(2)
-    resp = read_response(timeout=5)
+    resp = read_response(timeout=60)
     print("CMGS prompt:", resp)
 
     # If we didn’t get '>' prompt, fail immediately
@@ -41,7 +41,7 @@ def send_sms(recipient, message):
 
     # Step 2: send the message text + Ctrl+Z
     ser.write(message.encode() + b"\x1A")
-    resp = read_response(timeout=15)
+    resp = read_response(timeout=60)
     print("Send response:", resp)
 
     # Step 3: check success/failure
@@ -69,7 +69,7 @@ conn = mariadb.connect(
 # ser.baudrate = 9600 # transmission speed depending on the device
 # ser.writeTimeout = 20 # max time to wait for write operations to complete
 
-ser = serial.Serial("COM5", 9600, timeout=10)
+ser = serial.Serial("COM3", 9600, timeout=10)
 
 ser.close()
 ser.open()
@@ -79,7 +79,7 @@ ser.open()
 
 cur = conn.cursor()
 
-cur.execute("select * from sms where sent_on is null limit 5;")
+cur.execute("select * from sms where sent_on is null;")
 
 rows = cur.fetchall()
 
@@ -99,7 +99,7 @@ for row in rows :
 
     while True:
         line = ser.readline()
-        print("=" + str(line))
+        # print("=" + str(line))
         if not line:
             break
         resp += line
