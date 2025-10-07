@@ -1,4 +1,3 @@
-from operator import truediv
 from time import sleep
 import random
 
@@ -80,50 +79,44 @@ ser.open()
 # ser.write(b'AT+CSCS="GSM"\n')
 # time.sleep(2)
 
-has_unsent = True
+cur = conn.cursor()
+
+cur.execute("SELECT * FROM sms WHERE sent_on IS NULL ORDER BY id asc;")
+
+rows = cur.fetchall()
 
 send_at("AT+CMGF=1")
 send_at('AT+CSCS="GSM"')
 
-while has_unsent :
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM sms WHERE sent_on IS NULL ORDER BY id asc;")
-    rows = cur.fetchall()
+for row in rows :
+    # Sending SMS
 
-    for row in rows:
-        # Sending SMS
+    recipient_number = row[3]
+    message = row[5]
 
-        recipient_number = row[3]
-        message = row[5]
+    # ser.write('AT+CMGS="{}"\r\n'.format(recipient_number).encode())
+    # ser.write(f'AT+CMGS="{recipient_number}"\r\n'.encode())
 
-        # ser.write('AT+CMGS="{}"\r\n'.format(recipient_number).encode())
-        # ser.write(f'AT+CMGS="{recipient_number}"\r\n'.encode())
+    resp = b""
 
-        resp = b""
-
-        while True:
-            line = ser.readline()
-            # print("=" + str(line))
-            if not line:
-                break
-            resp += line
-            if b">" in line:
-                break
-        if send_sms(recipient_number, message):
-            print(f"SMS sent to {recipient_number}")
-            cur.execute("UPDATE sms SET sent_on = NOW() WHERE id = ?", (row[0],))
-            conn.commit()
-            sleep(random.randint(90, 120))
-        else:
-            print(f"SMS failed to {recipient_number}")
-
-    cur.execute("SELECT * FROM sms WHERE sent_on IS NULL ORDER BY id asc;")
-    unsent_rows = cur.fetchall()
-
-    if len(unsent_rows)>0:
-        has_unsent = True
+    while True:
+        line = ser.readline()
+        # print("=" + str(line))
+        if not line:
+            break
+        resp += line
+        if b">" in line:
+            break
+    if send_sms(recipient_number, message):
+        print(f"SMS sent to {recipient_number}")
+        cur.execute("UPDATE sms SET sent_on = NOW() WHERE id = ?", (row[0],))
+        conn.commit()
+        sleep(random.randint(90, 120))
     else:
-        has_unsent = False
+        print(f"SMS failed to {recipient_number}")
 
+
+
+    # update = "update sms set sent_on = now() where id = " + str(row[0])
 
 ser.close()
